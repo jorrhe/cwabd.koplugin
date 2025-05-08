@@ -24,7 +24,7 @@ If you find this plugin helpful, please consider supporting its development. You
 ## Installation
 
 1.  Download the latest release
-2.  Copy the `plugins/Z-library.koplugin` directory to the `koreader/plugins` folder on your device.
+2.  Copy the `plugins/zlibrary.koplugin` directory to the `koreader/plugins` folder on your device.
 3.  Restart KOReader.
 
 ## Configuration
