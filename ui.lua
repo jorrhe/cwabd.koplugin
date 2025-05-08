@@ -112,7 +112,7 @@ local function _showMultiSelectionDialog(parent_ui, title, setting_key, options_
                 end
             end)
             if not ok then
-                logger.error("Zlibrary:Ui._showMultiSelectionDialog - Error during onClose for %s: %s", title, tostring(err))
+                logger.err("Zlibrary:Ui._showMultiSelectionDialog - Error during onClose for %s: %s", title, tostring(err))
             end
             UIManager:close(selection_menu)
         end,

@@ -14,7 +14,7 @@ function Parser.parseSearchResults(html)
 
     if not ok then
         local error_msg = "Failed to parse HTML: " .. tostring(root_or_err)
-        logger.error("Zlibrary:Parser.parseSearchResults - %s", error_msg)
+        logger.err("Zlibrary:Parser.parseSearchResults - %s", error_msg)
         return { results = nil, total_count = nil, error = error_msg }
     end
 
@@ -59,7 +59,7 @@ function Parser.parseSearchResults(html)
 
     if not loop_ok then
         local error_msg = "Error processing book cards: " .. tostring(loop_err)
-        logger.error("Zlibrary:Parser.parseSearchResults - %s", error_msg)
+        logger.err("Zlibrary:Parser.parseSearchResults - %s", error_msg)
         return { results = nil, total_count = total_count, error = error_msg }
     end
 

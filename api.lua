@@ -49,7 +49,7 @@ function Api.makeHttpRequest(options)
 
     if not ok then
         result.error = "Network request failed: " .. tostring(r1)
-        logger.error("Zlibrary:Api.makeHttpRequest - END (pcall error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.makeHttpRequest - END (pcall error) - Error: %s", result.error)
         return result
     end
 
@@ -61,7 +61,7 @@ function Api.makeHttpRequest(options)
                 final_status_code = r1
             else
                  result.error = "Unexpected http.request result with redirect=true: " .. tostring(r1)
-                 logger.error("Zlibrary:Api.makeHttpRequest - END (unexpected redirect result) - Error: %s", result.error)
+                 logger.err("Zlibrary:Api.makeHttpRequest - END (unexpected redirect result) - Error: %s", result.error)
                  return result
             end
         end
@@ -91,7 +91,7 @@ function Api.login(email, password)
     local rpc_url = Config.getRpcUrl()
     if not rpc_url then
         result.error = "The Zlibrary server address (URL) is not set. Please configure it in the Zlibrary plugin settings."
-        logger.error("Zlibrary:Api.login - END (Configuration error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.login - END (Configuration error) - Error: %s", result.error)
         return result
     end
 
@@ -125,15 +125,15 @@ function Api.login(email, password)
 
     if http_result.error then
         result.error = "Login request failed: " .. http_result.error
-        logger.error("Zlibrary:Api.login - END (HTTP error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.login - END (HTTP error) - Error: %s", result.error)
         return result
     end
 
-    local data, _, err = json.decode(http_result.body)
+    local data, _, err_msg = json.decode(http_result.body)
 
     if not data or type(data) ~= "table" then
-        result.error = "Login failed: Invalid response format. " .. (err or "")
-        logger.error("Zlibrary:Api.login - END (JSON error) - Error: %s", result.error)
+        result.error = "Login failed: Invalid response format. " .. (err_msg or "")
+        logger.err("Zlibrary:Api.login - END (JSON error) - Error: %s", result.error)
         return result
     end
 
@@ -160,14 +160,14 @@ function Api.search(query, user_id, user_key, languages, extensions, page)
     local base_url = Config.getBaseUrl()
     if not base_url then
         result.error = "The Zlibrary server address (URL) is not set. Please configure it in the Zlibrary plugin settings." -- Updated
-        logger.error("Zlibrary:Api.search - END (Configuration error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.search - END (Configuration error) - Error: %s", result.error)
         return result
     end
 
     local search_url = Config.getSearchUrl(query)
     if not search_url then -- This will be nil if base_url was nil
         result.error = "Could not construct the Zlibrary search address. Please verify the Zlibrary URL in the plugin settings." -- Updated
-        logger.error("Zlibrary:Api.search - END (Configuration error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.search - END (Configuration error) - Error: %s", result.error)
         return result
     end
 
@@ -201,7 +201,7 @@ function Api.search(query, user_id, user_key, languages, extensions, page)
 
     if http_result.error then
         result.error = "Search request failed: " .. http_result.error
-        logger.error("Zlibrary:Api.search - END (HTTP error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.search - END (HTTP error) - Error: %s", result.error)
         return result
     end
 
@@ -209,7 +209,7 @@ function Api.search(query, user_id, user_key, languages, extensions, page)
 
     if parsed.error then
         result.error = parsed.error
-        logger.error("Zlibrary:Api.search - END (Parse error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.search - END (Parse error) - Error: %s", result.error)
         return result
     end
 
@@ -225,7 +225,7 @@ function Api.downloadBook(download_url, target_filepath, user_id, user_key, refe
     local file, err_open = io.open(target_filepath, "wb")
     if not file then
         result.error = "Failed to open target file: " .. (err_open or "Unknown error")
-        logger.error("Zlibrary:Api.downloadBook - END (File open error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.downloadBook - END (File open error) - Error: %s", result.error)
         return result
     end
 
@@ -249,7 +249,7 @@ function Api.downloadBook(download_url, target_filepath, user_id, user_key, refe
     if http_result.error or http_result.status_code ~= 200 then
         result.error = "Download failed: " .. (http_result.error or string.format("HTTP Error: %s", http_result.status_code))
         pcall(os.remove, target_filepath)
-        logger.error("Zlibrary:Api.downloadBook - END (Download error) - Error: %s", result.error)
+        logger.err("Zlibrary:Api.downloadBook - END (Download error) - Error: %s", result.error)
         return result
     else
         result.success = true
