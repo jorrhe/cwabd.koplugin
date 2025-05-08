@@ -1,0 +1,195 @@
+name: Create Plugin Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '*.lua'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Bump Version in _meta.lua
+        id: bump_version
+        run: |
+          PLUGIN_DIR="."
+          META_FILE="$PLUGIN_DIR/_meta.lua"
+
+          echo "Looking for _meta.lua at $META_FILE"
+          if [ ! -f "$META_FILE" ]; then
+            echo "Error: $META_FILE not found."
+            exit 1
+          fi
+
+          CURRENT_VERSION_LINE=$(grep -m 1 '^\s*version\s*=\s*".*"' "$META_FILE")
+          if [ -z "$CURRENT_VERSION_LINE" ]; then
+            echo "Error: Version line not found in $META_FILE."
+            echo "Ensure $META_FILE contains a line like: version = \"1.2.3\""
+            exit 1
+          fi
+
+          CURRENT_VERSION=$(echo "$CURRENT_VERSION_LINE" | grep -oP '(?<=")[^"]+(?=")')
+          if ! [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version '$CURRENT_VERSION' in $META_FILE is not in X.Y.Z format."
+            exit 1
+          fi
+
+          MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+          MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+          PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+
+          echo "Current version: $CURRENT_VERSION -> New version: $NEW_VERSION"
+
+          TEMP_META_FILE=$(mktemp)
+          sed "s/^\(\s*version\s*=\s*\"\)$CURRENT_VERSION/\1$NEW_VERSION/" "$META_FILE" > "$TEMP_META_FILE" && mv "$TEMP_META_FILE" "$META_FILE"
+
+          if ! grep -q "version\s*=\s*\"$NEW_VERSION\"" "$META_FILE"; then
+              echo "Error: Failed to update version in $META_FILE."
+              exit 1
+          fi
+          echo "Successfully updated $META_FILE to version $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Set up plugin variables
+        id: plugin_vars
+        run: |
+          PLUGIN_DIR="."
+          VERSION="${{ steps.bump_version.outputs.version }}"
+          echo "Using version for release: $VERSION"
+          echo "plugin_dir=$PLUGIN_DIR" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "zip_name=zlibrary_plugin_v${VERSION}.zip" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: List Lua files to be zipped
+        id: list_files
+        run: |
+          echo "Looking for files in ${{ github.workspace }}/${{ steps.plugin_vars.outputs.plugin_dir }}"
+          cd "${{ github.workspace }}/${{ steps.plugin_vars.outputs.plugin_dir }}"
+          
+          # Initialize an empty list string
+          FILE_LINES=""
+
+          # Add .lua files, each on a new line, prefixed with ./
+          # find will output nothing if no files are found.
+          # Using -type f to ensure we only get files.
+          TEMP_LUA_FILES=$(find . -maxdepth 1 -type f -name '*.lua' -printf './%f\\n')
+          if [ -n "$TEMP_LUA_FILES" ]; then
+            FILE_LINES="${TEMP_LUA_FILES}"
+          fi
+          
+          # Add README.md if it exists and is a file
+          if [ -f "README.md" ]; then
+            # Append ./README.md.
+            # If FILE_LINES is not empty, it already ends with a newline from find's -printf.
+            FILE_LINES="${FILE_LINES}./README.md\\n"
+          fi
+
+          # Remove any blank lines from the list and trim whitespace from each line.
+          # awk 'NF' prints lines that have at least one non-whitespace character.
+          PROCESSED_FILES_LIST=$(echo -e "${FILE_LINES}" | awk 'NF')
+
+          if [ -z "$PROCESSED_FILES_LIST" ]; then
+            echo "Error: No .lua files or README.md found in the plugin directory ('${{ steps.plugin_vars.outputs.plugin_dir }}')."
+            echo "::error title=No files to zip::No .lua files or README.md found in '${{ steps.plugin_vars.outputs.plugin_dir }}'. Workflow cannot proceed to create zip."
+            exit 1
+          fi
+          
+          echo "Files to be zipped (one per line):"
+          echo "${PROCESSED_FILES_LIST}" # For logging
+          
+          # Correctly output for GITHUB_OUTPUT using heredoc style
+          # This ensures the multi-line string is preserved.
+          {
+            echo "files_list<<EOF"
+            echo "${PROCESSED_FILES_LIST}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          
+          cd "$GITHUB_WORKSPACE" # Go back to workspace root
+        shell: bash
+
+      - name: Create plugin zip archive
+        run: |
+          echo "Creating zip file: ${{ steps.plugin_vars.outputs.zip_name }}"
+          echo "Files to include (will be placed in plugins/zlibrary.koplugin/ within the zip):"
+          echo "${{ steps.list_files.outputs.files_list }}"
+
+          # Define staging and target paths. All paths are relative to GITHUB_WORKSPACE.
+          STAGING_DIR="zip_staging" # Relative to GITHUB_WORKSPACE
+          TARGET_IN_ZIP_PATH="plugins/zlibrary.koplugin"
+          FULL_TARGET_STAGING_PATH="$STAGING_DIR/$TARGET_IN_ZIP_PATH" # Relative to GITHUB_WORKSPACE
+
+          # Clean up any previous staging directory and create the new one
+          rm -rf "$STAGING_DIR"
+          mkdir -p "$FULL_TARGET_STAGING_PATH"
+
+          # Copy listed files into the target staging path
+          # files_list contains paths like ./main.lua, which are already relative to GITHUB_WORKSPACE
+          echo "${{ steps.list_files.outputs.files_list }}" | while IFS= read -r file_path; do
+            if [ -f "$file_path" ]; then # $file_path is e.g. ./main.lua, already correct for use here
+              cp "$file_path" "$FULL_TARGET_STAGING_PATH/"
+            else
+              echo "Warning: File $file_path not found in ${{ github.workspace }}, skipping."
+            fi
+          done
+
+          # Go into the staging directory to create the zip with the correct internal structure
+          cd "$STAGING_DIR"
+
+          # Create the zip. 'plugins' is the top-level directory in staging to be zipped.
+          # The zip file itself will be created in GITHUB_WORKSPACE because of the ../
+          zip -r "../${{ steps.plugin_vars.outputs.zip_name }}" plugins
+
+          # Go back to the original workspace directory
+          cd "${{ github.workspace }}"
+
+          # Clean up the staging directory
+          rm -rf "$STAGING_DIR"
+
+          echo "Zip file created at ${{ github.workspace }}/${{ steps.plugin_vars.outputs.zip_name }}"
+          echo "Verify zip contents:"
+          unzip -l "${{ github.workspace }}/${{ steps.plugin_vars.outputs.zip_name }}"
+        shell: bash
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v${{ steps.plugin_vars.outputs.version }}-${{ github.sha }}
+          name: zlibrary.koplugin v${{ steps.plugin_vars.outputs.version }}
+          draft: false
+          prerelease: false
+          files: ./${{ steps.plugin_vars.outputs.zip_name }}
+
+      - name: Commit and Push _meta.lua changes
+        run: |
+          echo "Preparing to commit _meta.lua version bump..."
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          PLUGIN_META_FILE="${{ steps.plugin_vars.outputs.plugin_dir }}/_meta.lua"
+          git add "$PLUGIN_META_FILE"
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to $PLUGIN_META_FILE to commit."
+          else
+            echo "Committing updated $PLUGIN_META_FILE with version ${{ steps.bump_version.outputs.version }}"
+            git commit -m "chore: Bump version to ${{ steps.bump_version.outputs.version }} [skip ci]"
+            echo "Pushing changes to master..."
+            git push
+            echo "Changes pushed."
+          fi
+        shell: bash
