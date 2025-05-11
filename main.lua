@@ -7,7 +7,7 @@ local lfs = require("libs/libkoreader-lfs")
 local meta = require("_meta")
 local UIManager = require("ui/uimanager")
 local NetworkMgr = require("ui/network/manager")
-local utils = require("utils")
+local util = require("frontend/util")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local T = require("gettext")
 local Config = require("config")
@@ -105,7 +105,7 @@ function Zlibrary:addToMainMenu(menu_items)
                     end,
                 },
                 {
-                    text = T("Select search Languages"),
+                    text = T("Select search languages"),
                     keep_menu_open = true,
                     callback = function()
                         Ui.showLanguageSelectionDialog(self.ui)
@@ -282,8 +282,8 @@ function Zlibrary:downloadBook(book)
     local download_url = Config.getDownloadUrl(book.download)
     logger.info(string.format("Zlibrary:downloadBook - Download URL: %s", download_url))
 
-    local safe_title = utils.trim(book.title or "Unknown Title"):gsub("[/\\?%*:|\"<>%c]", "_")
-    local safe_author = utils.trim(book.author or "Unknown Author"):gsub("[/\\?%*:|\"<>%c]", "_")
+    local safe_title = util.trim(book.title or "Unknown Title"):gsub("[/\\?%*:|\"<>%c]", "_")
+    local safe_author = util.trim(book.author or "Unknown Author"):gsub("[/\\?%*:|\"<>%c]", "_")
     local filename = string.format("%s - %s.%s", safe_title, safe_author, book.format or "unknown")
     logger.info(string.format("Zlibrary:downloadBook - Proposed filename: %s", filename))
 

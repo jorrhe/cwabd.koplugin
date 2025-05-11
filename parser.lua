@@ -1,5 +1,5 @@
 local htmlParser = require("htmlparser")
-local utils = require("util")
+local util = require("frontend/util")
 local logger = require("logger")
 
 local Parser = {}
@@ -44,8 +44,8 @@ function Parser.parseSearchResults(html)
 
             table.insert(results, {
                 id = attributes.id,
-                title = utils.trim(title),
-                author = utils.trim(author),
+                title = util.trim(title),
+                author = util.trim(author),
                 year = attributes.year or "N/A",
                 format = attributes.extension or "N/A",
                 size = attributes.filesize or "N/A",
@@ -75,7 +75,7 @@ function Parser.extractTotalCount(root_node)
     if book_tab_node then
         local tab_text = book_tab_node:getcontent()
         tab_text = string.gsub(tab_text, "&nbsp;", " ")
-        tab_text = utils.trim(tab_text)
+        tab_text = util.trim(tab_text)
 
         logger.dbg(string.format("Zlibrary:Parser.extractTotalCount - Found book tab text: %s", tab_text))
 

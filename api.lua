@@ -1,10 +1,10 @@
-local http = require("socket.http")
-local ltn12 = require("ltn12")
 local Config = require("config")
-local utils = require("utils")
-local json = require("dkjson")
 local Parser = require("parser")
+local util = require("frontend/util")
 local logger = require("logger")
+local json = require("json")
+local ltn12 = require("ltn12")
+local http = require("socket.http")
 
 local Api = {}
 
@@ -14,7 +14,7 @@ local function append_array_query_params(base_url, param_name, values)
     end
     local params_str_parts = {}
     for i, value in ipairs(values) do
-        table.insert(params_str_parts, string.format("%s[%d]=%s", param_name, i - 1, utils.escape(value)))
+        table.insert(params_str_parts, string.format("%s[%d]=%s", param_name, i - 1, util.urlEncode(value)))
     end
     local separator = base_url:find("?") and "&" or "?"
     return base_url .. separator .. table.concat(params_str_parts, "&")
@@ -105,7 +105,7 @@ function Api.login(email, password)
     }
     local body_parts = {}
     for k, v in pairs(body_data) do
-        table.insert(body_parts, utils.escape(k) .. "=" .. utils.escape(v))
+        table.insert(body_parts, util.urlEncode(k) .. "=" .. util.urlEncode(v))
     end
     local body = table.concat(body_parts, "&")
 
@@ -165,7 +165,7 @@ function Api.search(query, user_id, user_key, languages, extensions, page)
     end
 
     local search_url = Config.getSearchUrl(query)
-    if not search_url then -- This will be nil if base_url was nil
+    if not search_url then
         result.error = "Could not construct the Zlibrary search address. Please verify the Zlibrary URL in the plugin settings." -- Updated
         logger.err(string.format("Zlibrary:Api.search - END (Configuration error) - Error: %s", result.error))
         return result

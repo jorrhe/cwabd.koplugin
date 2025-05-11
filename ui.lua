@@ -6,7 +6,7 @@ local DownloadMgr = require("ui/downloadmgr")
 local InputDialog = require("ui/widget/inputdialog")
 local Menu = require("ui/widget/menu")
 local Config = require("config")
-local utils = require("utils")
+local util = require("frontend/util")
 local logger = require("logger")
 
 local Ui = {}
@@ -146,7 +146,7 @@ function Ui.showGenericInputDialog(title, setting_key, current_value_or_default,
                 callback = function()
                     local input = dialog:getInputText()
                     if input and input:match("%S") then
-                        Config.saveSetting(setting_key, utils.trim(input))
+                        Config.saveSetting(setting_key, util.trim(input))
                         Ui.showInfoMessage(T("Setting saved successfully!"))
                     else
                         Config.deleteSetting(setting_key)
@@ -189,7 +189,7 @@ function Ui.showSearchDialog(parent_zlibrary)
                         return
                     end
 
-                    local trimmed_query = utils.trim(query)
+                    local trimmed_query = util.trim(query)
                     parent_zlibrary:performSearch(trimmed_query)
                 end,
             },
@@ -201,8 +201,8 @@ end
 
 function Ui.createBookMenuItem(book_data, parent_zlibrary_instance)
     local year_str = (book_data.year and book_data.year ~= "N/A" and tostring(book_data.year) ~= "0") and (" (" .. book_data.year .. ")") or ""
-    local title = book_data.title or T("Unknown Title")
-    local author = book_data.author or T("Unknown Author")
+    local title = util.htmlEntitiesToUtf8(book_data.title or T("Unknown Title"))
+    local author = util.htmlEntitiesToUtf8(book_data.author or T("Unknown Author"))
     local main_text_part = string.format("%s by %s%s", title, author, year_str)
 
     local sub_text_parts = {}

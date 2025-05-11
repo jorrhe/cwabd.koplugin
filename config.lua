@@ -1,5 +1,5 @@
+local util = require("frontend/util")
 local DataStorage = require("datastorage")
-local utils = require("utils")
 
 local Config = {}
 
@@ -80,7 +80,7 @@ end
 function Config.getSearchUrl(query)
     local base = Config.getBaseUrl()
     if not base then return nil end
-    return string.format(base .. "/s/%s", utils.escape(query))
+    return string.format(base .. "/s/%s", util.urlEncode(query))
 end
 
 function Config.getBookUrl(href)
@@ -104,8 +104,8 @@ function Config.getSetting(key, default)
 end
 
 function Config.saveSetting(key, value)
-    if value == nil or value == "" then
-        G_reader_settings:delSetting(key)
+    if type(value) == "string" then
+        G_reader_settings:saveSetting(key, util.trim(value))
     else
         G_reader_settings:saveSetting(key, value)
     end
