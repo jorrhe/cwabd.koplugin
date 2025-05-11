@@ -39,15 +39,29 @@ function Zlibrary:addToMainMenu(menu_items)
     if not self.ui.view then
         menu_items.find_book_in_zlibrary = {
             sorting_hint = "search",
-            text = T("Search Z-library"),
+            text = T("Z-library search"),
             callback = function()
                 Ui.showSearchDialog(self)
             end,
+            separator = true,
         }
         menu_items.configure_zlibrary_plugin = {
-            sorting_hint = "tools",
-            text = T("Z-library Settings"),
+            sorting_hint = "search",
+            text = T("Z-library settings"),
             sub_item_table = {
+                {
+                    text = T("Set base URL"),
+                    keep_menu_open = true,
+                    callback = function()
+                        Ui.showGenericInputDialog(
+                            T("Set Z-library base URL"),
+                            Config.SETTINGS_BASE_URL_KEY,
+                            Config.getBaseUrl(),
+                            false
+                        )
+                    end,
+                    separator = true,
+                },
                 {
                     text = T("Set username"),
                     keep_menu_open = true,
@@ -73,18 +87,6 @@ function Zlibrary:addToMainMenu(menu_items)
                     end,
                 },
                 {
-                    text = T("Set base URL"),
-                    keep_menu_open = true,
-                    callback = function()
-                        Ui.showGenericInputDialog(
-                            T("Set Z-library Base URL"),
-                            Config.SETTINGS_BASE_URL_KEY,
-                            Config.getBaseUrl(),
-                            false
-                        )
-                    end,
-                },
-                {
                     text = T("Verify credentials"),
                     keep_menu_open = true,
                     callback = function()
@@ -93,6 +95,7 @@ function Zlibrary:addToMainMenu(menu_items)
                             Ui.showInfoMessage(T("Login successful!"))
                         end
                     end,
+                    separator = true,
                 },
                 {
                     text = T("Set download directory"),
@@ -109,7 +112,7 @@ function Zlibrary:addToMainMenu(menu_items)
                     end,
                 },
                 {
-                    text = T("Select search Formats"),
+                    text = T("Select search formats"),
                     keep_menu_open = true,
                     callback = function()
                         Ui.showExtensionSelectionDialog(self.ui)

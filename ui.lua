@@ -121,11 +121,11 @@ local function _showMultiSelectionDialog(parent_ui, title, setting_key, options_
 end
 
 function Ui.showLanguageSelectionDialog(parent_ui)
-    _showMultiSelectionDialog(parent_ui, T("Select Search Languages"), Config.SETTINGS_SEARCH_LANGUAGES_KEY, Config.SUPPORTED_LANGUAGES)
+    _showMultiSelectionDialog(parent_ui, T("Select search languages"), Config.SETTINGS_SEARCH_LANGUAGES_KEY, Config.SUPPORTED_LANGUAGES)
 end
 
 function Ui.showExtensionSelectionDialog(parent_ui)
-    _showMultiSelectionDialog(parent_ui, T("Select Search Formats"), Config.SETTINGS_SEARCH_EXTENSIONS_KEY, Config.SUPPORTED_EXTENSIONS)
+    _showMultiSelectionDialog(parent_ui, T("Select search formats"), Config.SETTINGS_SEARCH_EXTENSIONS_KEY, Config.SUPPORTED_EXTENSIONS)
 end
 
 function Ui.showGenericInputDialog(title, setting_key, current_value_or_default, is_password)
