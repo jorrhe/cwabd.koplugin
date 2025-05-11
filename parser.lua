@@ -14,7 +14,7 @@ function Parser.parseSearchResults(html)
 
     if not ok then
         local error_msg = "Failed to parse HTML: " .. tostring(root_or_err)
-        logger.err("Zlibrary:Parser.parseSearchResults - %s", error_msg)
+        logger.err(string.format("Zlibrary:Parser.parseSearchResults - %s", error_msg))
         return { results = nil, total_count = nil, error = error_msg }
     end
 
@@ -25,7 +25,7 @@ function Parser.parseSearchResults(html)
 
     local searchBox = root:select("#searchResultBox")[1]
     if not searchBox then
-        logger.warn("Zlibrary:Parser.parseSearchResults - Could not find #searchResultBox element.")
+        logger.warn(string.format("Zlibrary:Parser.parseSearchResults - Could not find #searchResultBox element."))
         local total_count = Parser.extractTotalCount(root)
         return { results = {}, total_count = total_count, error = nil }
     end
@@ -59,11 +59,11 @@ function Parser.parseSearchResults(html)
 
     if not loop_ok then
         local error_msg = "Error processing book cards: " .. tostring(loop_err)
-        logger.err("Zlibrary:Parser.parseSearchResults - %s", error_msg)
+        logger.err(string.format("Zlibrary:Parser.parseSearchResults - %s", error_msg))
         return { results = nil, total_count = total_count, error = error_msg }
     end
 
-    logger.info("Zlibrary:Parser.parseSearchResults - Successfully parsed %d results. Total count: %s", #results, tostring(total_count))
+    logger.info(string.format("Zlibrary:Parser.parseSearchResults - Successfully parsed %d results. Total count: %s", #results, tostring(total_count)))
     return { results = results, total_count = total_count, error = nil }
 end
 
@@ -77,24 +77,24 @@ function Parser.extractTotalCount(root_node)
         tab_text = string.gsub(tab_text, "&nbsp;", " ")
         tab_text = utils.trim(tab_text)
 
-        logger.dbg("Zlibrary:Parser.extractTotalCount - Found book tab text: %s", tab_text)
+        logger.dbg(string.format("Zlibrary:Parser.extractTotalCount - Found book tab text: %s", tab_text))
 
         local count_str = string.match(tab_text, "%((%d+)+?%s*%+?%)")
 
         if count_str then
             local count = tonumber(count_str)
             if count then
-                logger.dbg("Zlibrary:Parser.extractTotalCount - Extracted count: %d", count)
+                logger.dbg(string.format("Zlibrary:Parser.extractTotalCount - Extracted count: %d", count))
                 return count
             end
         else
-             logger.warn("Zlibrary:Parser.extractTotalCount - Could not extract count from book tab text: %s", tab_text)
+             logger.warn(string.format("Zlibrary:Parser.extractTotalCount - Could not extract count from book tab text: %s", tab_text))
         end
     else
-        logger.warn("Zlibrary:Parser.extractTotalCount - Could not find book tab node <a data-type='book'>.")
+        logger.warn(string.format("Zlibrary:Parser.extractTotalCount - Could not find book tab node <a data-type='book'>."))
     end
 
-    logger.warn("Zlibrary:Parser.extractTotalCount - Could not determine total count.")
+    logger.warn(string.format("Zlibrary:Parser.extractTotalCount - Could not determine total count."))
     return nil
 end
 

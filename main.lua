@@ -170,7 +170,7 @@ function Zlibrary:performSearch(query)
             return
         end
 
-        logger.info("Zlibrary:performSearch - Fetch successful. Results: %d", #api_result.results)
+        logger.info(string.format("Zlibrary:performSearch - Fetch successful. Results: %d", #api_result.results))
         self.current_search_query = query
         self.current_search_api_page_loaded = 1
         self.all_search_results_data = api_result.results
@@ -195,7 +195,7 @@ function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
     end
 
     local menu_items = {}
-    logger.info("Zlibrary:displaySearchResults - Preparing menu items from %d initial results.", #initial_book_data_list)
+    logger.info(string.format("Zlibrary:displaySearchResults - Preparing menu items from %d initial results.", #initial_book_data_list))
 
     for i = 1, #initial_book_data_list do
         local book = initial_book_data_list[i]
@@ -214,7 +214,7 @@ function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
         local is_last_page_of_current_items = (new_page_number == menu_instance.page_num)
 
         if is_last_page_of_current_items and self.has_more_api_results then
-            logger.info("Zlibrary: Reached page %d (last page of current items). Attempting to load more from API.", new_page_number)
+            logger.info(string.format("Zlibrary: Reached page %d (last page of current items). Attempting to load more from API.", new_page_number))
 
             local next_api_page_to_fetch = self.current_search_api_page_loaded + 1
             local loading_msg = Ui.showLoadingMessage(T("Loading more results (Page ") .. next_api_page_to_fetch .. T(")..."))
@@ -229,7 +229,7 @@ function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
             local function on_success_load_more(api_result)
                 local new_book_objects = api_result and api_result.results
                 if new_book_objects and #new_book_objects > 0 then
-                    logger.info("Zlibrary: Adding %d new book objects from API.", #new_book_objects)
+                    logger.info(string.format("Zlibrary: Adding %d new book objects from API.", #new_book_objects))
                     self.current_search_api_page_loaded = next_api_page_to_fetch
 
                     local new_menu_items_to_add = {}
@@ -277,20 +277,20 @@ function Zlibrary:downloadBook(book)
     end
 
     local download_url = Config.getDownloadUrl(book.download)
-    logger.info("Zlibrary:downloadBook - Download URL: %s", download_url)
+    logger.info(string.format("Zlibrary:downloadBook - Download URL: %s", download_url))
 
     local safe_title = utils.trim(book.title or "Unknown Title"):gsub("[/\\?%*:|\"<>%c]", "_")
     local safe_author = utils.trim(book.author or "Unknown Author"):gsub("[/\\?%*:|\"<>%c]", "_")
     local filename = string.format("%s - %s.%s", safe_title, safe_author, book.format or "unknown")
-    logger.info("Zlibrary:downloadBook - Proposed filename: %s", filename)
+    logger.info(string.format("Zlibrary:downloadBook - Proposed filename: %s", filename))
 
     local target_dir = Config.getDownloadDir()
 
     if not target_dir then
         target_dir = Config.DEFAULT_DOWNLOAD_DIR_FALLBACK
-        logger.warn("Zlibrary:downloadBook - Download directory setting not found, using fallback: %s", target_dir)
+        logger.warn(string.format("Zlibrary:downloadBook - Download directory setting not found, using fallback: %s", target_dir))
     else
-        logger.info("Zlibrary:downloadBook - Using configured download directory: %s", target_dir)
+        logger.info(string.format("Zlibrary:downloadBook - Using configured download directory: %s", target_dir))
     end
 
     if lfs.attributes(target_dir, "mode") ~= "directory" then
@@ -299,11 +299,11 @@ function Zlibrary:downloadBook(book)
             Ui.showErrorMessage(string.format(T("Cannot create downloads directory: %s"), err_mkdir or "Unknown error"))
             return
         end
-        logger.info("Zlibrary:downloadBook - Created downloads directory: %s", target_dir)
+        logger.info(string.format("Zlibrary:downloadBook - Created downloads directory: %s", target_dir))
     end
 
     local target_filepath = target_dir .. "/" .. filename
-    logger.info("Zlibrary:downloadBook - Target filepath: %s", target_filepath)
+    logger.info(string.format("Zlibrary:downloadBook - Target filepath: %s", target_filepath))
 
     local user_session = Config.getUserSession()
     local referer_url = book.href and Config.getBookUrl(book.href) or nil
