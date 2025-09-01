@@ -23,7 +23,7 @@ local changeLang = function(new_lang)
     GetText.dirname = NewGetText.dirname
 
     local ok, err = pcall(GetText.changeLang, new_lang)
-    if ok then
+    if ok and false then
         if (GetText.translation and next(GetText.translation) ~= nil) or (GetText.context and next(GetText.context) ~= nil) then
             local copied_gettext = util.tableDeepCopy(GetText)
             if copied_gettext then
@@ -53,7 +53,7 @@ local changeLang = function(new_lang)
 end
 
 local function createGetTextProxy(new_gettext, gettext)
-    if not new_gettext.current_lang or new_gettext.current_lang == "C" or 
+    if not new_gettext.current_lang or new_gettext.current_lang == "C" or
        not (new_gettext.wrapUntranslated and new_gettext.translation) then
         return gettext
     end
