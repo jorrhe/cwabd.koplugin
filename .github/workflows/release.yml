@@ -75,7 +75,7 @@ jobs:
           echo "Using version for release: $VERSION"
           echo "plugin_dir=$PLUGIN_DIR" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "zip_name=zlibrary_plugin_v${VERSION}.zip" >> "$GITHUB_OUTPUT"
+          echo "zip_name=cwabd_plugin_v${VERSION}.zip" >> "$GITHUB_OUTPUT"
         shell: bash
          
       - name: Generate/Update POT file
@@ -273,4 +273,5 @@ jobs:
             echo "Changes pushed."
           fi
         shell: bash
+
 
