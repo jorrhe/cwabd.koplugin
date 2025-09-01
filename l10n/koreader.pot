@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 #: _meta.lua:4 main.lua:25 main.lua:69
-msgid "Z-library"
+msgid "CWA Book Downloader"
 msgstr ""
 
 #: _meta.lua:5
@@ -50,11 +50,11 @@ msgid "Set password"
 msgstr ""
 
 #: main.lua:122
-msgid "Verify credentials"
+msgid "Verifying connection"
 msgstr ""
 
 #: main.lua:127
-msgid "Login successful!"
+msgid "Connection successful!"
 msgstr ""
 
 #: main.lua:134
@@ -151,15 +151,15 @@ msgid "Recommended books"
 msgstr ""
 
 #: main.lua:359 main.lua:391
-msgid "Fetching most popular books..."
+msgid "Fetching download queue..."
 msgstr ""
 
 #: main.lua:360 main.lua:392
-msgid "Failed to fetch most popular books"
+msgid "Failed to fetch download queue"
 msgstr ""
 
 #: main.lua:361 main.lua:393
-msgid "Most popular books"
+msgid "Download queue"
 msgstr ""
 
 #: main.lua:427
@@ -183,11 +183,11 @@ msgid "Please set both username and password first."
 msgstr ""
 
 #: main.lua:486
-msgid "Logging in..."
+msgid "Verifying connection..."
 msgstr ""
 
 #: main.lua:506 zlibrary/ui.lua:951
-msgid "Login"
+msgid "Verify"
 msgstr ""
 
 #: main.lua:526
@@ -221,7 +221,7 @@ msgid "Cannot create downloads directory: %s"
 msgstr ""
 
 #: main.lua:748
-msgid "Downloading…"
+msgid "Enqueing download..."
 msgstr ""
 
 #: main.lua:782
@@ -329,11 +329,11 @@ msgid "API returned an error for recommended books."
 msgstr ""
 
 #: zlibrary/api.lua:521
-msgid "Failed to fetch most popular books (no response body)."
+msgid "Failed to fetch download queue (no response body)."
 msgstr ""
 
 #: zlibrary/api.lua:527
-msgid "Failed to parse most popular books response."
+msgid "Failed to parse queue download response."
 msgstr ""
 
 #: zlibrary/api.lua:532
@@ -341,7 +341,7 @@ msgid "API returned an error for most popular books."
 msgstr ""
 
 #: zlibrary/api.lua:552
-msgid "Z-library server URL not configured or book identifiers missing."
+msgid "CWABD server URL not configured or book identifiers missing."
 msgstr ""
 
 #: zlibrary/api.lua:577
@@ -692,11 +692,11 @@ msgid "Z-library Recommended Books"
 msgstr ""
 
 #: zlibrary/ui.lua:648
-msgid "No most popular books found. The list was empty, please try again."
+msgid "Queue list is empty."
 msgstr ""
 
 #: zlibrary/ui.lua:653
-msgid "Z-library Most Popular Books"
+msgid "Download queue"
 msgstr ""
 
 #: zlibrary/ui.lua:669 zlibrary/ui.lua:676

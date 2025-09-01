@@ -3,7 +3,7 @@
 -- Any values set here will take precedence over the settings configured in the UI.
 
 return {
-    -- baseUrl = "https://your.zlibrary.domain.com",
-    -- email = "your_email",
-    -- password = "your_password",
+    -- baseUrl = "http://your.cwabd.domain.com",
+    -- username = "your_username", -- Optional param if you have auth enabled
+    -- password = "your_password", -- Optional param if you have auth enabled
 }

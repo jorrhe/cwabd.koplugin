@@ -221,7 +221,7 @@ local function  _showRadioSelectionDialog(parent_ui, title, setting_key, options
 end
 
 function Ui.showLanguageSelectionDialog(parent_ui)
-    _showMultiSelectionDialog(parent_ui, T("Select search languages"), Config.SETTINGS_SEARCH_LANGUAGES_KEY, Config.SUPPORTED_LANGUAGES)
+    _showRadioSelectionDialog(parent_ui, T("Select search language"), Config.SETTINGS_SEARCH_LANGUAGES_KEY, Config.SUPPORTED_LANGUAGES)
 end
 
 function Ui.showExtensionSelectionDialog(parent_ui)
@@ -287,10 +287,10 @@ function Ui.showSearchDialog(parent_zlibrary, def_input)
 
     local dialog
     local search_order_name = Config.getSearchOrderName()
-    
+
     local selected_languages = Config.getSearchLanguages()
     local selected_extensions = Config.getSearchExtensions()
-    
+
     local lang_text = T("Set languages")
     if #selected_languages > 0 then
         if #selected_languages == 1 then
@@ -299,7 +299,7 @@ function Ui.showSearchDialog(parent_zlibrary, def_input)
             lang_text = string.format(T("Languages (%d)"), #selected_languages)
         end
     end
-    
+
     local format_text = T("Set formats")
     if #selected_extensions > 0 then
         if #selected_extensions == 1 then
@@ -315,7 +315,7 @@ function Ui.showSearchDialog(parent_zlibrary, def_input)
     end
 
     dialog = InputDialog:new{
-        title = T("Search Z-library"),
+        title = T("Search Downloader"),
         input = def_input,
         buttons = {{{
         text = T("Search"),
@@ -344,7 +344,7 @@ function Ui.showSearchDialog(parent_zlibrary, def_input)
             text = lang_text,
             callback = function()
                 _closeAndUntrackDialog(dialog)
-                _showMultiSelectionDialog(parent_zlibrary, T("Select search languages"), Config.SETTINGS_SEARCH_LANGUAGES_KEY, Config.SUPPORTED_LANGUAGES, function(count)
+                _showRadioSelectionDialog(parent_zlibrary, T("Select search languages"), Config.SETTINGS_SEARCH_LANGUAGES_KEY, Config.SUPPORTED_LANGUAGES, function(count)
                     Ui.showSearchDialog(parent_zlibrary, def_input)
                 end)
             end
@@ -555,6 +555,25 @@ function Ui.confirmDownload(filename, ok_callback)
     end
 end
 
+function Ui.confirmCancel(title, ok_callback)
+    if _plugin_instance and _plugin_instance.dialog_manager then
+        _plugin_instance.dialog_manager:showConfirmDialog({
+            text = string.format(T("Cancel download \"%s\"?"), title),
+            ok_text = T("Cancel download"),
+            ok_callback = ok_callback,
+            cancel_text = T("Back")
+        })
+    else
+        local dialog = ConfirmBox:new{
+            text = string.format(T("Cancel download \"%s\"?"), title),
+            ok_text = T("Cancel download"),
+            ok_callback = ok_callback,
+            cancel_text = T("Back")
+        }
+        UIManager:show(dialog)
+    end
+end
+
 function Ui.confirmOpenBook(filename, has_wifi_toggle, default_turn_off_wifi, ok_open_callback, cancel_callback)
     local turn_off_wifi = default_turn_off_wifi
 
@@ -630,27 +649,35 @@ function Ui.showRecommendedBooksMenu(ui_self, books, plugin_self)
     _showAndTrackDialog(menu)
 end
 
-function Ui.showMostPopularBooksMenu(ui_self, books, plugin_self)
+function Ui.showDownloadQueue(ui_self, books, plugin_self)
     local menu_items = {}
     for _, book in ipairs(books) do
         local title = book.title or T("Untitled")
-        local author = book.author or T("Unknown Author")
-        local menu_text = string.format("%s - %s", title, author)
+
+        local status = book.queue_status:sub(1,1):upper()..book.queue_status:sub(2)
+
+        if book.progress and status == "downloading" then
+            local progress = math.floor(book.progress * 100)
+            status = string.format("%s %s%%",status,progress)
+        end
+
+        local menu_text = string.format("[%s] %s", status, title)
         table.insert(menu_items, {
             text = menu_text,
+            post_text = title,
             callback = function()
-                plugin_self:onSelectRecommendedBook(book)
+                plugin_self:onDownloadingBookSelected(book)
             end,
         })
     end
 
     if #menu_items == 0 then
-        Ui.showInfoMessage(T("No most popular books found. The list was empty, please try again."))
+        Ui.showInfoMessage(T("Queue list is empty."))
         return
     end
 
     local menu = Menu:new({
-        title = T("Z-library Most Popular Books"),
+        title = T("Download queue"),
         item_table = menu_items,
         items_per_page = 10,
         show_captions = true,
@@ -725,26 +752,26 @@ function Ui.showSearchErrorDialog(err_msg, query, user_session, selected_languag
             Ui.showSearchErrorDialog(new_err_msg, query, user_session, selected_languages, selected_extensions, selected_order, current_page, new_loading_msg, original_on_success, original_on_error)
         end, new_loading_msg)
     end
-    
+
     local cancel_callback = function(err)
         original_on_error(err)
     end
-    
+
     Ui.showRetryErrorDialog(err_msg, T("Search"), retry_callback, cancel_callback, loading_msg_to_close)
 end
 
 function Ui.showRetryErrorDialog(err_msg, operation_name, retry_callback, cancel_callback, loading_msg_to_close)
     local error_string = tostring(err_msg)
-    
+
 
     local is_http_400 = string.match(error_string, "HTTP Error: 400")
-    local is_timeout = string.find(error_string, T("Request timed out")) or 
-                      string.find(error_string, "timeout") or 
+    local is_timeout = string.find(error_string, T("Request timed out")) or
+                      string.find(error_string, "timeout") or
                       string.find(error_string, "timed out") or
                       string.find(error_string, "sink timeout")
     local is_network_error = string.find(error_string, T("Network connection error")) or
                             string.find(error_string, T("Network request failed"))
-    
+
     if is_http_400 or is_timeout or is_network_error then
         local retry_message
         if is_timeout then
@@ -779,7 +806,7 @@ function Ui.showRetryErrorDialog(err_msg, operation_name, retry_callback, cancel
         else
             retry_message = string.format(T("%s failed due to a temporary issue. Would you like to retry?"), operation_name)
         end
-        
+
         if _plugin_instance and _plugin_instance.dialog_manager then
             _plugin_instance.dialog_manager:showConfirmDialog({
                 text = retry_message,
@@ -818,24 +845,24 @@ function Ui.showTimeoutConfigDialog(parent_ui, timeout_name, timeout_key, getter
     local current_timeout = getter_func()
     local block_timeout = current_timeout[1]
     local total_timeout = current_timeout[2]
-    
+
     local dialog_items = {}
     local dialog_menu
-    
+
     local function refreshDialog()
         local updated_timeout = getter_func()
         block_timeout = updated_timeout[1]
         total_timeout = updated_timeout[2]
-        
+
         dialog_items[1].text = string.format(T("Block timeout: %s seconds"), tostring(block_timeout))
         dialog_items[2].text = string.format(T("Total timeout: %s"), total_timeout == -1 and T("infinite") or (tostring(total_timeout) .. " " .. T("seconds")))
-        
+
         if dialog_menu then
             dialog_menu.subtitle = Config.formatTimeoutForDisplay(updated_timeout)
             dialog_menu:switchItemTable(dialog_menu.title, dialog_items, -1, nil, dialog_menu.subtitle)
         end
     end
-    
+
     table.insert(dialog_items, {
         text = string.format(T("Block timeout: %s seconds"), tostring(block_timeout)),
         mandatory = "\u{25B7}",
@@ -859,7 +886,7 @@ function Ui.showTimeoutConfigDialog(parent_ui, timeout_name, timeout_key, getter
             )
         end
     })
-    
+
     table.insert(dialog_items, {
         text = string.format(T("Total timeout: %s"), total_timeout == -1 and T("infinite") or (tostring(total_timeout) .. " " .. T("seconds"))),
         mandatory = "\u{25B7}",
@@ -883,11 +910,11 @@ function Ui.showTimeoutConfigDialog(parent_ui, timeout_name, timeout_key, getter
             )
         end
     })
-    
+
     table.insert(dialog_items, {
         text = "---"
     })
-    
+
     table.insert(dialog_items, {
         text = T("Reset to defaults"),
         mandatory = "\u{1F5D8}",
@@ -906,9 +933,9 @@ function Ui.showTimeoutConfigDialog(parent_ui, timeout_name, timeout_key, getter
             end
         end
     })
-    
 
-    
+
+
     dialog_menu = Menu:new{
         title = string.format(T("%s Timeout Settings"), timeout_name),
         subtitle = Config.formatTimeoutForDisplay(current_timeout),
@@ -916,7 +943,7 @@ function Ui.showTimeoutConfigDialog(parent_ui, timeout_name, timeout_key, getter
         parent = parent_ui,
         show_captions = true,
     }
-    
+
     local original_onClose = dialog_menu.onClose
     dialog_menu.onClose = function(self)
         if original_onClose then
@@ -927,20 +954,20 @@ function Ui.showTimeoutConfigDialog(parent_ui, timeout_name, timeout_key, getter
             refresh_parent_callback()
         end
     end
-    
+
     _showAndTrackDialog(dialog_menu)
 end
 
 function Ui.showAllTimeoutConfigDialog(parent_ui)
     local timeout_items = {}
     local main_menu
-    
+
     local function refreshMainDialog()
         if main_menu then
             main_menu:updateItems(nil, true)
         end
     end
-    
+
     timeout_items = {
         {
             text = T("Login timeouts"),
@@ -948,7 +975,7 @@ function Ui.showAllTimeoutConfigDialog(parent_ui)
                 return Config.formatTimeoutForDisplay(Config.getLoginTimeout())
             end,
             callback = function()
-                Ui.showTimeoutConfigDialog(parent_ui, T("Login"), Config.SETTINGS_TIMEOUT_LOGIN_KEY, 
+                Ui.showTimeoutConfigDialog(parent_ui, T("Verify"), Config.SETTINGS_TIMEOUT_LOGIN_KEY,
                     Config.getLoginTimeout, Config.setLoginTimeout, refreshMainDialog)
             end
         },
@@ -1039,7 +1066,7 @@ function Ui.showAllTimeoutConfigDialog(parent_ui)
             end
         }
     }
-    
+
     main_menu = Menu:new{
         title = T("Timeout Settings"),
         item_table = timeout_items,

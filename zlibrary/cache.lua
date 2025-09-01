@@ -11,7 +11,7 @@ local Cache = {
     path = nil,
     _cache = nil,
     _has_cache = nil,
-    _dir = DataStorage:getDataDir() .. "/cache/zlibrary"
+    _dir = DataStorage:getDataDir() .. "/cache/cwabd"
 }
 
 function Cache:new(o)

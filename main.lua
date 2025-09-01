@@ -21,18 +21,18 @@ local Device = require("device")
 local MultiSearchDialog = require("zlibrary.multisearch_dialog")
 local DialogManager = require("zlibrary.dialog_manager")
 
-local Zlibrary = WidgetContainer:extend{
-    name = T("Z-library"),
+local CWABD = WidgetContainer:extend{
+    name = T("CWA Book Downloader"),
     is_doc_only = false,
     plugin_path = nil,
     dialog_manager = nil,
 }
 
-function Zlibrary:onDispatcherRegisterActions()
+function CWABD:onDispatcherRegisterActions()
     Dispatcher:registerAction("zlibrary_search", { category="none", event="ZlibrarySearch", title=T("Z-library search"), general=true,})
 end
 
-function Zlibrary:init()
+function CWABD:init()
     local full_source_path = debug.getinfo(1, "S").source
     if full_source_path:sub(1,1) == "@" then
         full_source_path = full_source_path:sub(2)
@@ -52,7 +52,7 @@ function Zlibrary:init()
     end
 end
 
-function Zlibrary:onZlibrarySearch()
+function CWABD:onZlibrarySearch()
     local def_search_input
     if self.ui and self.ui.doc_settings and self.ui.doc_settings.data.doc_props then
       local doc_props = self.ui.doc_settings.data.doc_props
@@ -62,11 +62,11 @@ function Zlibrary:onZlibrarySearch()
     return true
 end
 
-function Zlibrary:addToMainMenu(menu_items)
+function CWABD:addToMainMenu(menu_items)
     if not self.ui.view then
         menu_items.zlibrary_main = {
             sorting_hint = "search",
-            text = T("Z-library"),
+            text = T("CWA Book Downloader"),
             sub_item_table = {
                 {
                     text = T("Settings"),
@@ -95,11 +95,11 @@ function Zlibrary:addToMainMenu(menu_items)
                             separator = true,
                         },
                         {
-                            text = T("Set email"),
+                            text = T("Set username"),
                             keep_menu_open = true,
                             callback = function()
                                 Ui.showGenericInputDialog(
-                                    T("Set email"),
+                                    T("Set username"),
                                     Config.SETTINGS_USERNAME_KEY,
                                     Config.getSetting(Config.SETTINGS_USERNAME_KEY),
                                     false
@@ -119,30 +119,23 @@ function Zlibrary:addToMainMenu(menu_items)
                             end,
                         },
                         {
-                            text = T("Verify credentials"),
+                            text = T("Verify connection"),
                             keep_menu_open = true,
                             callback = function()
-                                self:login(function(success)
+                                self:verifyConnection(function(success)
                                     if success then
-                                        Ui.showInfoMessage(T("Login successful!"))
+                                        Ui.showInfoMessage(T("Connection successful!"))
                                     end
                                 end)
                             end,
                             separator = true,
                         },
                         {
-                            text = T("Set download directory"),
-                            keep_menu_open = true,
-                            callback = function()
-                                Ui.showDownloadDirectoryDialog()
-                            end,
-                        },
-                        {
                             text = T("Search options"),
                             keep_menu_open = true,
                             separator = true,
                             sub_item_table = {{
-                                text = T("Select search languages"),
+                                text = T("Select search language"),
                                 keep_menu_open = true,
                                 callback = function()
                                     Ui.showLanguageSelectionDialog(self.ui)
@@ -189,28 +182,11 @@ function Zlibrary:addToMainMenu(menu_items)
                             sub_item_table_func = function()
                                 return {
                                     {
-                                        text = T("Clear user session"),
-                                        keep_menu_open = true,
+                                        text = T("Restart server"),
+                                        keep_menu_open = false,
                                         callback = function()
-                                            Config.clearUserSession()
-                                            Ui.showInfoMessage(T("Session cleared. You will need to login again."))
-                                        end,
-                                    },
-                                    {
-                                        text = T("Test mode"),
-                                        keep_menu_open = true,
-                                        checked_func = function()
-                                            return Config.isTestModeEnabled()
-                                        end,
-                                        callback = function()
-                                            local is_enabled = Config.isTestModeEnabled()
-                                            if is_enabled then
-                                                Config.setTestMode(false)
-                                                Ui.showInfoMessage(T("Test mode disabled. Normal download behavior restored."))
-                                            else
-                                                Config.setTestMode(true)
-                                                Ui.showInfoMessage(T("Test mode enabled. Downloads will always succeed."))
-                                            end
+                                            Api.restart()
+                                            Ui.showInfoMessage(T("Server restarting..."))
                                         end,
                                     },
                                 }
@@ -225,25 +201,17 @@ function Zlibrary:addToMainMenu(menu_items)
                     end,
                 },
                 {
-                    text = T("Recommended"),
+                    text = T("Download Queue"),
                     callback = function()
-                        local search_tab_recommended = 1
-                        self:showMultiSearchDialog(search_tab_recommended)
+                        self:onShowDownloadQueue()
                     end,
-                },
-                {
-                    text = T("Most popular"),
-                    callback = function()
-                        local search_tab_most_popular = 2
-                        self:showMultiSearchDialog(search_tab_most_popular)
-                    end,
-                },
+                }
             }
         }
     end
 end
 
-function Zlibrary:_fetchBookList(options)
+function CWABD:_fetchBookList(options)
     if not NetworkMgr:isOnline() then
         Ui.showErrorMessage(T("No internet connection detected."))
         return
@@ -251,26 +219,15 @@ function Zlibrary:_fetchBookList(options)
 
     local function attemptFetch(retry_on_auth_error)
         retry_on_auth_error = retry_on_auth_error == nil and true or retry_on_auth_error
-        
-        local user_session = Config.getUserSession()
+
         local loading_msg = Ui.showLoadingMessage(options.loading_text_key)
 
         local task = function()
-            return options.api_method(user_session and user_session.user_id, user_session and user_session.user_key)
+            return options.api_method()
         end
 
         local on_success = function(api_result)
             if api_result.error then
-                if retry_on_auth_error and Api.isAuthenticationError(api_result.error) and options.requires_auth then
-                    Ui.closeMessage(loading_msg)
-                    self:login(function(login_ok)
-                        if login_ok then
-                            attemptFetch(false)
-                        end
-                    end)
-                    return
-                end
-                
                 Ui.closeMessage(loading_msg)
                 Ui.showErrorMessage(Ui.colonConcat(options.error_prefix_key, tostring(api_result.error)))
                 return
@@ -287,7 +244,7 @@ function Zlibrary:_fetchBookList(options)
             end
 
             Ui.closeMessage(loading_msg)
-            logger.info(string.format("Zlibrary:%s - Fetch successful. Results: %d", options.log_context, #api_result.books))
+            logger.info(string.format("CWABD:%s - Fetch successful. Results: %d", options.log_context, #api_result.books))
             self[options.results_member_name] = api_result.books
 
             UIManager:nextTick(function()
@@ -296,16 +253,6 @@ function Zlibrary:_fetchBookList(options)
         end
 
         local on_error_handler = function(err_msg)
-            if retry_on_auth_error and Api.isAuthenticationError(err_msg) and options.requires_auth then
-                Ui.closeMessage(loading_msg)
-                self:login(function(login_ok)
-                    if login_ok then
-                        attemptFetch(false)
-                    end
-                end)
-                return
-            end
-            
             -- Use retry dialog for timeout and network errors
             Ui.showRetryErrorDialog(err_msg, options.operation_name or T("Operation"), function()
                 -- Retry callback
@@ -321,13 +268,13 @@ function Zlibrary:_fetchBookList(options)
     attemptFetch()
 end
 
-function Zlibrary:showMultiSearchDialog(def_position, def_search_input)
+function CWABD:showMultiSearchDialog(def_position, def_search_input)
     local search_dialog
     local ShowBooksMultiSearch = function(ui_self, books, plugin_self)
         search_dialog:refreshMenuItems(books)
     end
     search_dialog = MultiSearchDialog:new{
-        title = T("Z-library search"),
+        title = T("Book search"),
         def_position = def_position,
         def_search_input = def_search_input,
         on_select_book_callback = function(book)
@@ -335,70 +282,43 @@ function Zlibrary:showMultiSearchDialog(def_position, def_search_input)
         end,
         on_search_callback = function(def_input)
             Ui.showSearchDialog(self, def_input)
-        end,
-        toggle_items = {{
-            text = T("Recommended"),
-            cache_key = "recommended",
-            callback = function(widget)
-                self:_fetchBookList({
-                    api_method = Api.getRecommendedBooks,
-                    loading_text_key = T("Fetching recommended books..."),
-                    error_prefix_key = T("Failed to fetch recommended books"),
-                    operation_name = T("Recommended books"),
-                    log_context = "onShowRecommendedBooks",
-                    results_member_name = "current_recommended_books",
-                    display_menu_func = ShowBooksMultiSearch,
-                    requires_auth = true
-                })
-            end},{
-            text = T("Most popular"),
-            cache_key = "popular",
-            callback = function(widget)
-                self:_fetchBookList({
-                    api_method = Api.getMostPopularBooks,
-                    loading_text_key = T("Fetching most popular books..."),
-                    error_prefix_key = T("Failed to fetch most popular books"),
-                    operation_name = T("Most popular books"),
-                    log_context = "onShowMostPopularBooks",
-                    results_member_name = "current_most_popular_books",
-                    display_menu_func = ShowBooksMultiSearch,
-                    requires_auth = false
-                })
-            end}
-        }
+        end
     }
 
     self.dialog_manager:trackDialog(search_dialog)
     search_dialog:fetchAndShow()
 end
 
-function Zlibrary:onShowRecommendedBooks()
-    self:_fetchBookList({
-        api_method = Api.getRecommendedBooks,
-        loading_text_key = T("Fetching recommended books..."),
-        error_prefix_key = T("Failed to fetch recommended books"),
-        operation_name = T("Recommended books"),
-        log_context = "onShowRecommendedBooks",
-        results_member_name = "current_recommended_books",
-        display_menu_func = Ui.showRecommendedBooksMenu,
-        requires_auth = true
-    })
-end
 
-function Zlibrary:onShowMostPopularBooks()
+function CWABD:onShowDownloadQueue()
     self:_fetchBookList({
-        api_method = Api.getMostPopularBooks,
-        loading_text_key = T("Fetching most popular books..."),
-        error_prefix_key = T("Failed to fetch most popular books"),
-        operation_name = T("Most popular books"),
-        log_context = "onShowMostPopularBooks",
+        api_method = Api.getDownloadQueue,
+        loading_text_key = T("Fetching download queue..."),
+        error_prefix_key = T("Failed to fetch download queue"),
+        operation_name = T("Download queue"),
+        log_context = "onShowDownloadQueue",
         results_member_name = "current_most_popular_books",
-        display_menu_func = Ui.showMostPopularBooksMenu,
+        display_menu_func = Ui.showDownloadQueue,
         requires_auth = false
     })
 end
 
-function Zlibrary:onSelectRecommendedBook(book_stub)
+function CWABD:onDownloadingBookSelected(book)
+
+    if book.queue_status == "downloading" or book.queue_status == "queued" then
+        Ui.confirmCancel(book.title, function()
+            local result = Api.cancelDownload(book.id)
+            if result.success then
+                Ui.showInfoMessage(T('Download canceled!'))
+            elseif result.error then
+                Ui.showInfoMessage(T(result.error))
+            end
+        end)
+    end
+
+end
+
+function CWABD:onSelectRecommendedBook(book_stub)
     if not NetworkMgr:isOnline() then
         Ui.showErrorMessage(T("No internet connection detected."))
         return
@@ -444,7 +364,7 @@ function Zlibrary:onSelectRecommendedBook(book_stub)
             end
 
             Ui.closeMessage(loading_msg)
-            logger.info(string.format("Zlibrary:onSelectRecommendedBook - Fetch successful for book ID: %s", api_result.book.id))
+            logger.info(string.format("CWABD:onSelectRecommendedBook - Fetch successful for book ID: %s", api_result.book.id))
 
             Ui.showBookDetails(self, api_result.book)
 
@@ -467,7 +387,7 @@ function Zlibrary:onSelectRecommendedBook(book_stub)
     attemptBookDetails()
 end
 
-function Zlibrary:login(callback)
+function CWABD:verifyConnection(callback)
     if not NetworkMgr:isOnline() then
         Ui.showErrorMessage(T("No internet connection detected."))
         if callback then callback(false) end
@@ -477,16 +397,10 @@ function Zlibrary:login(callback)
     local email = Config.getSetting(Config.SETTINGS_USERNAME_KEY)
     local password = Config.getSetting(Config.SETTINGS_PASSWORD_KEY)
 
-    if not email or email == "" or not password or password == "" then
-        Ui.showErrorMessage(T("Please set both username and password first."))
-        if callback then callback(false) end
-        return
-    end
-
-    local loading_msg = Ui.showLoadingMessage(T("Logging in..."))
+    local loading_msg = Ui.showLoadingMessage(T("Verifying connection..."))
 
     local task = function()
-        return Api.login(email, password)
+        return Api.verify(email, password)
     end
 
     local on_success = function(result)
@@ -498,13 +412,12 @@ function Zlibrary:login(callback)
             return
         end
 
-        Config.saveUserSession(result.user_id, result.user_key)
         if callback then callback(true) end
     end
 
     local on_error_handler = function(err_msg)
-        Ui.showRetryErrorDialog(err_msg, T("Login"), function()
-            self:login(callback)
+        Ui.showRetryErrorDialog(err_msg, T("Verify"), function()
+            self:verifyConnection(callback)
         end, function(final_err_msg)
             if callback then callback(false) end
         end, loading_msg)
@@ -513,7 +426,7 @@ function Zlibrary:login(callback)
     AsyncHelper.run(task, on_success, on_error_handler, loading_msg)
 end
 
-function Zlibrary:performSearch(query)
+function CWABD:performSearch(query)
     if not NetworkMgr:isOnline() then
         Ui.showErrorMessage(T("No internet connection detected."))
         return
@@ -521,7 +434,7 @@ function Zlibrary:performSearch(query)
 
     local function attemptSearch(retry_on_auth_error)
         retry_on_auth_error = retry_on_auth_error == nil and true or retry_on_auth_error
-        
+
         local user_session = Config.getUserSession()
         local loading_msg = Ui.showLoadingMessage(T("Searching for \"") .. query .. "\"...")
 
@@ -537,16 +450,6 @@ function Zlibrary:performSearch(query)
         local on_success
         on_success = function(api_result)
             if api_result.error then
-                if retry_on_auth_error and Api.isAuthenticationError(api_result.error) then
-                    Ui.closeMessage(loading_msg)
-                    self:login(function(login_ok)
-                        if login_ok then
-                            attemptSearch(false)
-                        end
-                    end)
-                    return
-                end
-                
                 -- Use the retry dialog for timeouts and HTTP 400 errors
                 Ui.showSearchErrorDialog(api_result.error, query, user_session, selected_languages, selected_extensions, selected_order, current_page_to_search, loading_msg, on_success, function(final_err_msg)
                     -- Cancel callback - user already knows about the error
@@ -561,11 +464,11 @@ function Zlibrary:performSearch(query)
             end
 
             Ui.closeMessage(loading_msg)
-            logger.info(string.format("Zlibrary:performSearch - Fetch successful. Results: %d", #api_result.results))
+            logger.info(string.format("CWABD:performSearch - Fetch successful. Results: %d", #api_result.results))
             self.current_search_query = query
             self.current_search_api_page_loaded = current_page_to_search
             self.all_search_results_data = api_result.results
-            self.has_more_api_results = true
+            self.has_more_api_results = false
 
             UIManager:nextTick(function()
                 self:displaySearchResults(self.all_search_results_data, self.current_search_query)
@@ -573,16 +476,6 @@ function Zlibrary:performSearch(query)
         end
 
         local on_error_handler = function(err_msg)
-            if retry_on_auth_error and Api.isAuthenticationError(err_msg) then
-                Ui.closeMessage(loading_msg)
-                self:login(function(login_ok)
-                    if login_ok then
-                        attemptSearch(false)
-                    end
-                end)
-                return
-            end
-            
             -- Use the retry dialog for timeouts and HTTP 400 errors
             Ui.showSearchErrorDialog(err_msg, query, user_session, selected_languages, selected_extensions, selected_order, current_page_to_search, loading_msg, on_success, function(final_err_msg)
                 -- Cancel callback - user already knows about the error
@@ -595,14 +488,14 @@ function Zlibrary:performSearch(query)
     attemptSearch()
 end
 
-function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
+function CWABD:displaySearchResults(initial_book_data_list, query_string)
     if not initial_book_data_list or #initial_book_data_list == 0 then
-        logger.info("Zlibrary:displaySearchResults - No initial results to display.")
+        logger.info("CWABD:displaySearchResults - No initial results to display.")
         return
     end
 
     local menu_items = {}
-    logger.info(string.format("Zlibrary:displaySearchResults - Preparing menu items from %d initial results.", #initial_book_data_list))
+    logger.info(string.format("CWABD:displaySearchResults - Preparing menu items from %d initial results.", #initial_book_data_list))
 
     for i = 1, #initial_book_data_list do
         local book_menu_item_data = initial_book_data_list[i]
@@ -621,7 +514,7 @@ function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
         local is_last_page_of_current_items = (new_page_number == menu_instance.page_num)
 
         if is_last_page_of_current_items and self.has_more_api_results then
-            logger.info(string.format("Zlibrary: Reached page %d (last page of current items). Attempting to load more from API.", new_page_number))
+            logger.info(string.format("CWABD: Reached page %d (last page of current items). Attempting to load more from API.", new_page_number))
 
             local next_api_page_to_fetch = self.current_search_api_page_loaded + 1
             local loading_msg_more = Ui.showLoadingMessage(string.format(T("Loading more results (Page %s)..."), next_api_page_to_fetch))
@@ -640,22 +533,10 @@ function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
 
             on_success_load_more = function(api_result_more)
                 Ui.closeMessage(loading_msg_more)
-                if api_result_more.error then
-                    if Api.isAuthenticationError(api_result_more.error) then
-                        self:login(function(login_ok)
-                            if login_ok then
-                                on_goto_page_handler(menu_instance, new_page_number)
-                            end
-                        end)
-                        return
-                    end
-                    Ui.showErrorMessage(Ui.colonConcat(T("Failed to load more results"), tostring(api_result_more.error)))
-                    return
-                end
 
                 local new_book_objects = api_result_more.results
                 if new_book_objects and #new_book_objects > 0 then
-                    logger.info(string.format("Zlibrary: Adding %d new book objects from API.", #new_book_objects))
+                    logger.info(string.format("CWABD: Adding %d new book objects from API.", #new_book_objects))
                     self.current_search_api_page_loaded = next_api_page_to_fetch
 
                     local new_menu_items_to_add = {}
@@ -665,7 +546,7 @@ function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
                     end
                     Ui.appendSearchResultsToMenu(menu_instance, new_menu_items_to_add)
                 else
-                    logger.info("Zlibrary: No more results from API or API returned empty.")
+                    logger.info("CWABD: No more results from API or API returned empty.")
                     self.has_more_api_results = false
                     Ui.showInfoMessage(T("No more results found."))
                     menu_instance:updateItems(1, true)
@@ -674,22 +555,13 @@ function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
 
             on_error_load_more = function(err_msg_more)
                 Ui.closeMessage(loading_msg_more)
-                if Api.isAuthenticationError(err_msg_more) then
-                    self:login(function(login_ok)
-                        if login_ok then
-                            on_goto_page_handler(menu_instance, new_page_number)
-                        end
-                    end)
-                    return
-                end
-                
                 Ui.showErrorMessage(Ui.colonConcat(T("Failed to load more results"), tostring(err_msg_more)))
             end
 
             AsyncHelper.run(task_load_more, on_success_load_more, on_error_load_more, loading_msg_more)
         else
             if is_last_page_of_current_items and not self.has_more_api_results then
-                logger.info("Zlibrary: Reached last page, and no more API results to load.")
+                logger.info("CWABD: Reached last page, and no more API results to load.")
             end
             menu_instance:updateItems(1, true)
         end
@@ -699,7 +571,7 @@ function Zlibrary:displaySearchResults(initial_book_data_list, query_string)
     self.active_results_menu = Ui.createSearchResultsMenu(self.ui, query_string, menu_items, on_goto_page_handler)
 end
 
-function Zlibrary:downloadBook(book)
+function CWABD:downloadBook(book)
     if not NetworkMgr:isOnline() then
         Ui.showErrorMessage(T("No internet connection detected."))
         return
@@ -710,120 +582,28 @@ function Zlibrary:downloadBook(book)
         return
     end
 
-    local download_url = Config.getDownloadUrl(book.download)
-    logger.info(string.format("Zlibrary:downloadBook - Download URL: %s", download_url))
-
-    local safe_title = util.trim(book.title or "Unknown Title"):gsub("[/\\?%*:|\"<>%c]", "_")
-    local safe_author = util.trim(book.author or "Unknown Author"):gsub("[/\\?%*:|\"<>%c]", "_")
-    local filename = string.format("%s - %s.%s", safe_title, safe_author, book.format or "unknown")
-    logger.info(string.format("Zlibrary:downloadBook - Proposed filename: %s", filename))
-
-    local target_dir = Config.getDownloadDir()
-
-    if not target_dir then
-        target_dir = Config.DEFAULT_DOWNLOAD_DIR_FALLBACK
-        logger.warn(string.format("Zlibrary:downloadBook - Download directory setting not found, using fallback: %s", target_dir))
-    else
-        logger.info(string.format("Zlibrary:downloadBook - Using configured download directory: %s", target_dir))
-    end
-
-    if lfs.attributes(target_dir, "mode") ~= "directory" then
-        local ok, err_mkdir = lfs.mkdir(target_dir)
-        if not ok then
-            Ui.showErrorMessage(string.format(T("Cannot create downloads directory: %s"), err_mkdir or "Unknown error"))
-            return
-        end
-        logger.info(string.format("Zlibrary:downloadBook - Created downloads directory: %s", target_dir))
-    end
-
-    local target_filepath = target_dir .. "/" .. filename
-    logger.info(string.format("Zlibrary:downloadBook - Target filepath: %s", target_filepath))
+    local download_url = Config.getDownloadUrl(book.id)
+    logger.info(string.format("CWABD:downloadBook - Download URL: %s", download_url))
 
     local function attemptDownload(retry_on_auth_error)
         retry_on_auth_error = retry_on_auth_error == nil and true or retry_on_auth_error
-        
-        local user_session = Config.getUserSession()
-        local referer_url = book.href and Config.getBookUrl(book.href) or nil
 
-        local loading_msg = Ui.showLoadingMessage(T("Downloading…"))
+        local loading_msg = Ui.showLoadingMessage(T("Enqueing download..."))
 
         local function task_download()
-            return Api.downloadBook(download_url, target_filepath, user_session and user_session.user_id, user_session and user_session.user_key, referer_url)
+            return Api.downloadBook(download_url)
         end
 
         local function on_success_download(api_result)
-            if api_result and api_result.error and retry_on_auth_error and Api.isAuthenticationError(api_result.error) then
-                Ui.closeMessage(loading_msg)
-                self:login(function(login_ok)
-                    if login_ok then
-                        attemptDownload(false)
-                    end
-                end)
-                return
-            end
 
             Ui.closeMessage(loading_msg)
             if api_result and api_result.success then
-                local has_wifi_toggle = Device:hasWifiToggle()
-                local default_turn_off_wifi = Config.getTurnOffWifiAfterDownload()
-
-                Ui.confirmOpenBook(filename, has_wifi_toggle, default_turn_off_wifi, function(should_turn_off_wifi)
-                    if should_turn_off_wifi then
-                        NetworkMgr:disableWifi(function()
-                            logger.info("Zlibrary:downloadBook - Wi-Fi disabled after download as requested by user")
-                        end)
-                    end
-
-                    if ReaderUI then
-                        logger.info("Zlibrary:downloadBook - Cleaning up dialogs before opening reader")
-                        self.dialog_manager:closeAllDialogs()
-                        ReaderUI:showReader(target_filepath)
-                    else
-                        Ui.showErrorMessage(T("Could not open reader UI."))
-                        logger.warn("Zlibrary:downloadBook - ReaderUI not available.")
-                    end
-                end,
-                function(should_turn_off_wifi)
-                    if should_turn_off_wifi then
-                        NetworkMgr:disableWifi(function()
-                            logger.info("Zlibrary:downloadBook - Wi-Fi disabled after download as requested by user")
-                        end)
-                        logger.info("Zlibrary:downloadBook - Cleaning up dialogs cause wifi is turned off")
-                        self.dialog_manager:closeAllDialogs()
-                    end
-                end
-            )
-            else
-                local fail_msg = (api_result and api_result.message) or T("Download failed: Unknown error")
-                if api_result and api_result.error and string.find(api_result.error, "Download limit reached or file is an HTML page", 1, true) then
-                    fail_msg = T("Download limit reached. Please try again later or check your account.")
-                elseif api_result and api_result.error then
-                    fail_msg = api_result.error
-                end
-                Ui.showErrorMessage(fail_msg)
-                pcall(os.remove, target_filepath)
+                Ui.showInfoMessage(T("Download enqueued"))
             end
         end
 
         local function on_error_download(err_msg)
-            if retry_on_auth_error and Api.isAuthenticationError(err_msg) then
-                Ui.closeMessage(loading_msg)
-                self:login(function(login_ok)
-                    if login_ok then
-                        attemptDownload(false)
-                    end
-                end)
-                return
-            end
-            
-            local error_string = tostring(err_msg)
-            if string.find(error_string, "Download limit reached or file is an HTML page", 1, true) then
-                Ui.closeMessage(loading_msg)
-                Ui.showErrorMessage(T("Download limit reached. Please try again later or check your account."))
-                pcall(os.remove, target_filepath)
-                return
-            end
-            
+
             -- Use retry dialog for timeout and network errors
             Ui.showRetryErrorDialog(err_msg, T("Download"), function()
                 -- Retry callback
@@ -831,27 +611,25 @@ function Zlibrary:downloadBook(book)
                 loading_msg = new_loading_msg
                 AsyncHelper.run(task_download, on_success_download, on_error_download, loading_msg)
             end, function(final_err_msg)
-                -- Cancel callback - user already knows about the error
-                pcall(os.remove, target_filepath)
             end, loading_msg)
         end
 
         AsyncHelper.run(task_download, on_success_download, on_error_download, loading_msg)
     end
 
-    Ui.confirmDownload(filename, function()
+    Ui.confirmDownload(book.title, function()
         attemptDownload()
     end)
 end
 
-function Zlibrary:downloadAndShowCover(book)
+function CWABD:downloadAndShowCover(book)
     local cover_url = book.cover
     local book_id = book.id
     local book_hash = book.hash
     local book_title = book.title
 
     if not (cover_url and book_id and book_hash) then
-        logger.warn("Zlibrary:downloadAndShowCover - parameter error")
+        logger.warn("CWABD:downloadAndShowCover - parameter error")
         return
     end
 
@@ -878,18 +656,18 @@ function Zlibrary:downloadAndShowCover(book)
     Ui.showCoverDialog(book_title, cover_cache_path)
 end
 
-function Zlibrary:onExit()
+function CWABD:onExit()
     if self.dialog_manager and self.dialog_manager:getDialogCount() > 0 then
-        logger.info("Zlibrary:onExit - Cleaning up " .. self.dialog_manager:getDialogCount() .. " remaining dialogs")
+        logger.info("CWABD:onExit - Cleaning up " .. self.dialog_manager:getDialogCount() .. " remaining dialogs")
         self.dialog_manager:closeAllDialogs()
     end
 end
 
-function Zlibrary:onCloseWidget()
+function CWABD:onCloseWidget()
     if self.dialog_manager and self.dialog_manager:getDialogCount() > 0 then
-        logger.info("Zlibrary:onCloseWidget - Cleaning up " .. self.dialog_manager:getDialogCount() .. " remaining dialogs")
+        logger.info("CWABD:onCloseWidget - Cleaning up " .. self.dialog_manager:getDialogCount() .. " remaining dialogs")
         self.dialog_manager:closeAllDialogs()
     end
 end
 
-return Zlibrary
+return CWABD

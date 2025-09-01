@@ -7,7 +7,7 @@ This directory contains localization/translation files for the plugin.
 ### File Structure
 ```
 l10n/
-├── {language_code}/      # Translation directory (e.g. 'fr', 'zh_CN', 'es')
+├── {language_code}/      # Translation directory (e.g. 'es')
 │   └── koreader.po       # translation file
 └── koreader.pot          # Translation template
 ```
@@ -16,11 +16,11 @@ l10n/
 1. **Locate PO Files**
    - Navigate to the plugin's `l10n` directory:
      ```
-     koreader/plugins/zlibrary.koplugin/l10n/{language_code}/koreader.po
+     koreader/plugins/cwabd.koplugin/l10n/{language_code}/koreader.po
      ```
-   - Example (Japanese):
+   - Example (Spanish):
      ```
-     zlibrary.koplugin/l10n/ja/koreader.po
+     cwabd.koplugin/l10n/es/koreader.po
      ```
 
 2. **Add New Language**

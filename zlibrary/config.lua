@@ -22,7 +22,7 @@ Config.SETTINGS_TIMEOUT_RECOMMENDED_KEY = "zlibrary_timeout_recommended"
 Config.SETTINGS_TIMEOUT_POPULAR_KEY = "zlibrary_timeout_popular"
 Config.SETTINGS_TIMEOUT_DOWNLOAD_KEY = "zlibrary_timeout_download"
 Config.SETTINGS_TIMEOUT_COVER_KEY = "zlibrary_timeout_cover"
-Config.CREDENTIALS_FILENAME = "zlibrary_credentials.lua"
+Config.CREDENTIALS_FILENAME = "cwabd_credentials.lua"
 
 Config.DEFAULT_DOWNLOAD_DIR_FALLBACK = G_reader_settings:readSetting("home_dir")
              or require("apps/filemanager/filemanagerutil").getDefaultDir()
@@ -57,10 +57,6 @@ function Config.loadCredentialsFromFile(plugin_path)
                     Config.saveSetting(Config.SETTINGS_USERNAME_KEY, result.username)
                     logger.info("Overriding Username from " .. Config.CREDENTIALS_FILENAME)
                 end
-                if result.email then
-                    Config.saveSetting(Config.SETTINGS_USERNAME_KEY, result.email)
-                    logger.info("Overriding Username from " .. Config.CREDENTIALS_FILENAME)
-                end
                 if result.password then
                     Config.saveSetting(Config.SETTINGS_PASSWORD_KEY, result.password)
                     logger.info("Overriding Password from " .. Config.CREDENTIALS_FILENAME)
@@ -77,62 +73,97 @@ function Config.loadCredentialsFromFile(plugin_path)
 end
 
 Config.SUPPORTED_LANGUAGES = {
-    { name = "العربية", value = "arabic" },
-    { name = "Հայերեն", value = "armenian" },
-    { name = "Azərbaycanca", value = "azerbaijani" },
-    { name = "বাংলা", value = "bengali" },
-    { name = "简体中文", value = "chinese" },
-    { name = "Nederlands", value = "dutch" },
-    { name = "English", value = "english" },
-    { name = "Français", value = "french" },
-    { name = "ქართული", value = "georgian" },
-    { name = "Deutsch", value = "german" },
-    { name = "Ελληνικά", value = "greek" },
-    { name = "हिन्दी", value = "hindi" },
-    { name = "Bahasa Indonesia", value = "indonesian" },
-    { name = "Italiano", value = "italian" },
-    { name = "日本語", value = "japanese" },
-    { name = "한국어", value = "korean" },
-    { name = "Bahasa Malaysia", value = "malaysian" },
-    { name = "پښتو", value = "pashto" },
-    { name = "Polski", value = "polish" },
-    { name = "Português", value = "portuguese" },
-    { name = "Русский", value = "russian" },
-    { name = "Српски", value = "serbian" },
-    { name = "Español", value = "spanish" },
-    { name = "తెలుగు", value = "telugu" },
-    { name = "ไทย", value = "thai" },
-    { name = "繁體中文", value = "traditional chinese" },
-    { name = "Türkçe", value = "turkish" },
-    { name = "Українська", value = "ukrainian" },
-    { name = "اردو", value = "urdu" },
-    { name = "Tiếng Việt", value = "vietnamese" },
+    {name = "All", value = "all"},
+    {name = "English", value = "en"},
+    {name = "Chinese", value = "ru"},
+    {name = "Russian", value="ru"},
+    {name = "Spanish", value = "es"},
+    {name = "French", value = "fr"},
+    {name = "German", value = "de"},
+    {name = "Italian", value = "it"},
+    {name = "Portuguese", value = "pt"},
+    {name = "Polish", value = "pl"},
+    {name = "Bulgarian", value = "bg"},
+    {name = "Dutch", value = "nl"},
+    {name = "Japanese", value = "ja"},
+    {name = "Arabic", value = "ar"},
+    {name = "Hebrew", value = "he"},
+    {name = "Turkish", value = "tr"},
+    {name = "Hungarian", value = "hu"},
+    {name = "Latin", value = "la"},
+    {name = "Czech", value = "cs"},
+    {name = "Korean", value = "ko"},
+    {name = "Ukrainian", value = "uk"},
+    {name = "Indonesian", value = "id"},
+    {name = "Romanian", value = "ro"},
+    {name = "Swedish", value = "sv"},
+    {name = "Greek", value = "el"},
+    {name = "Lithuanian", value = "lt"},
+    {name = "Bangla", value="bn"},
+    {name = "Traditional Chinese", value = "zh‑Hant"},
+    {name = "Afrikaans", value = "af"},
+    {name = "Catalan", value = "ca"},
+    {name = "Danish", value = "da"},
+    {name = "Thai", value = "th"},
+    {name = "Hindi", value = "hi"},
+    {name = "Irish", value = "ga"},
+    {name = "Latvian", value = "lv"},
+    {name = "Tibetan", value = "bo"},
+    {name = "Kannada", value = "kn"},
+    {name = "Serbian", value = "sr"},
+    {name = "Persian", value = "fa"},
+    {name = "Croatian", value = "hr"},
+    {name = "Slovak", value = "sk"},
+    {name = "Javanese", value = "jv"},
+    {name = "Vietnamese", value = "vi"},
+    {name = "Urdu", value = "ur"},
+    {name = "Finnish", value = "fi"},
+    {name = "Norwegian", value = "no"},
+    {name = "Kinyarwanda", value = "rw"},
+    {name = "Tamil", value = "ta"},
+    {name = "Belarusian", value = "be"},
+    {name = "Kazakh", value = "kk"},
+    {name = "Mongolian", value = "mn"},
+    {name = "Georgian", value = "ka"},
+    {name = "Slovenian", value = "sl"},
+    {name = "Esperanto", value = "eo"},
+    {name = "Galician", value = "gl"},
+    {name = "Marathi", value = "mr"},
+    {name = "Filipino", value = "fil"},
+    {name = "Gujarati", value = "gu"},
+    {name = "Malayalam", value = "ml"},
+    {name = "Kyrgyz", value = "ky"},
+    {name = "Azerbaijani", value = "az"},
+    {name = "Quechua", value = "qu"},
+    {name = "Swahili", value = "sw"},
+    {name = "Bashkir", value = "ba"},
+    {name = "Punjabi", value = "pa"},
+    {name = "Malay", value = "ms"},
+    {name = "Telugu", value = "te"},
+    {name = "Albanian", value = "sq"},
+    {name = "Uyghur", value = "ug"},
+    {name = "Armenian", value = "hy"}
 }
 
+
 Config.SUPPORTED_EXTENSIONS = {
-    { name = "AZW", value = "AZW" },
-    { name = "AZW3", value = "AZW3" },
-    { name = "CBZ", value = "CBZ" },
-    { name = "DJV", value = "DJV" },
-    { name = "DJVU", value = "DJVU" },
-    { name = "EPUB", value = "EPUB" },
-    { name = "FB2", value = "FB2" },
-    { name = "LIT", value = "LIT" },
-    { name = "MOBI", value = "MOBI" },
-    { name = "PDF", value = "PDF" },
-    { name = "RTF", value = "RTF" },
-    { name = "TXT", value = "TXT" },
+    { name = "AZW3", value = "azw3" },
+    { name = "CBZ", value = "cbz" },
+    { name = "DJVU", value = "djvu" },
+    { name = "EPUB", value = "epub" },
+    { name = "FB2", value = "fb2" },
+    { name = "MOBI", value = "mobi" },
+    { name = "PDF", value = "pdf" },
 }
 
 Config.SUPPORTED_ORDERS = {
-    { name = T("Most popular"), value = "popular" },
-    { name = T("Best match"), value = "bestmatch" },
-    { name = T("Recently added"), value = "date" },
-    { name = string.format("%s %s", T("Title"), "(A-Z)"), value = "titleA" },
-    { name = string.format("%s %s", T("Title"), "(Z-A)"), value = "title" },
-    { name = T("Year"), value = "year" },
-    { name = string.format("%s %s", T("File size"), "↓"), value = "filesize" },
-    { name = string.format("%s %s", T("File size"), "↑"), value = "filesizeA" }
+    { name = T("Most relevant"), value = "" },
+    { name = T("Newest (Publication)"), value = "newest" },
+    { name = T("Oldest (Publication)"), value = "oldest" },
+    { name = T("Largest"), value = "largest" },
+    { name = T("Smallest"), value = "smallest" },
+    { name = T("Newest (Added)"), value = "newest_added" },
+    { name = T("Oldest (Added)"), value = "oldest_added" },
 }
 
 function Config.getBaseUrl()
@@ -154,42 +185,20 @@ function Config.setAndValidateBaseUrl(url_string)
         url_string = "https://" .. url_string
     end
 
-    local _, _, protocol, domain = string.find(url_string, "^(https?://)(.+)")
-    if domain then
-        if not string.match(domain, "^%d+%.%d+%.%d+%.%d+$") then
-            local domain_parts = {}
-            for part in string.gmatch(domain, "[^%.]+") do
-                table.insert(domain_parts, part)
-            end
-            if #domain_parts > 2 then
-                local base_domain = table.concat({domain_parts[#domain_parts-1], domain_parts[#domain_parts]}, ".")
-                url_string = protocol .. base_domain
-            end
-        end
-    end
-
-    if not string.find(url_string, "%.") then
-        return false, "Error: URL must include a valid domain name (e.g., example.com)."
-    end
-
-    if string.sub(url_string, -1) == "/" then
-        url_string = string.sub(url_string, 1, -2)
-    end
-
     Config.saveSetting(Config.SETTINGS_BASE_URL_KEY, url_string)
     return true, nil
 end
 
-function Config.getRpcUrl()
+function Config.getStatusUrl()
     local base = Config.getBaseUrl()
     if not base then return nil end
-    return base .. "/rpc.php"
+    return base .. "/request/api/status"
 end
 
 function Config.getSearchUrl(query)
     local base = Config.getBaseUrl()
     if not base then return nil end
-    return base .. "/eapi/book/search"
+    return base .. "/request/api/search"
 end
 
 function Config.getBookUrl(href)
@@ -200,12 +209,11 @@ function Config.getBookUrl(href)
     return base .. href
 end
 
-function Config.getDownloadUrl(download_path)
-    if not download_path then return nil end
+function Config.getDownloadUrl(id)
+    if not id then return nil end
     local base = Config.getBaseUrl()
     if not base then return nil end
-    if not download_path:match("^/") then download_path = "/" .. download_path end
-    return base .. download_path
+    return base .. "/request/api/download?id=" .. id
 end
 
 function Config.getBookDetailsUrl(book_id, book_hash)
@@ -214,16 +222,22 @@ function Config.getBookDetailsUrl(book_id, book_hash)
     return base .. string.format("/eapi/book/%s/%s", book_id, book_hash)
 end
 
-function Config.getRecommendedBooksUrl()
+function Config.getDownloadQueueUrl()
     local base = Config.getBaseUrl()
     if not base then return nil end
-    return base .. "/eapi/user/book/recommended"
+    return base .. "/request/api/status"
 end
 
-function Config.getMostPopularBooksUrl()
+function Config.getCancelDownloadUrl(book_id)
     local base = Config.getBaseUrl()
     if not base then return nil end
-    return base .. "/eapi/book/most-popular"
+    return base .. "/request/api/download/"..book_id.."/cancel"
+end
+
+function Config.getRestartUrl()
+    local base = Config.getBaseUrl()
+    if not base then return nil end
+    return base .. "/request/api/restart"
 end
 
 function Config.getSetting(key, default)
@@ -254,20 +268,6 @@ function Config.getUserSession()
         user_id = Config.getSetting(Config.SETTINGS_USER_ID_KEY),
         user_key = Config.getSetting(Config.SETTINGS_USER_KEY_KEY),
     }
-end
-
-function Config.saveUserSession(user_id, user_key)
-    Config.saveSetting(Config.SETTINGS_USER_ID_KEY, user_id)
-    Config.saveSetting(Config.SETTINGS_USER_KEY_KEY, user_key)
-end
-
-function Config.clearUserSession()
-    Config.deleteSetting(Config.SETTINGS_USER_ID_KEY)
-    Config.deleteSetting(Config.SETTINGS_USER_KEY_KEY)
-end
-
-function Config.getDownloadDir()
-    return Config.getSetting(Config.SETTINGS_DOWNLOAD_DIR_KEY, Config.DEFAULT_DOWNLOAD_DIR_FALLBACK)
 end
 
 function Config.getSearchLanguages()
@@ -306,13 +306,6 @@ function Config.setTurnOffWifiAfterDownload(turn_off)
     Config.saveSetting(Config.SETTINGS_TURN_OFF_WIFI_AFTER_DOWNLOAD_KEY, turn_off)
 end
 
-function Config.isTestModeEnabled()
-    return Config.getSetting("zlibrary_test_mode", false)
-end
-
-function Config.setTestMode(enabled)
-    Config.saveSetting("zlibrary_test_mode", enabled)
-end
 
 -- Timeout configuration functions
 function Config.getTimeoutConfig(timeout_key, default_timeout)
@@ -358,7 +351,7 @@ end
 function Config.formatTimeoutForDisplay(timeout_pair)
     local block_timeout = timeout_pair[1]
     local total_timeout = timeout_pair[2]
-    
+
     local total_display = total_timeout == -1 and T("infinite") or (tostring(total_timeout) .. "s")
     return string.format(T("Block: %ds, Total: %s"), block_timeout, total_display)
 end
