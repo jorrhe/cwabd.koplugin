@@ -189,12 +189,12 @@ jobs:
       - name: Create plugin zip archive
         run: |
           echo "Creating zip file: ${{ steps.plugin_vars.outputs.zip_name }}"
-          echo "Files to include (will be placed in plugins/zlibrary.koplugin/ within the zip):"
+          echo "Files to include (will be placed in plugins/cwabd.koplugin/ within the zip):"
           echo "${{ steps.list_files.outputs.files_list }}"
 
           # Define staging and target paths. All paths are relative to GITHUB_WORKSPACE.
           STAGING_DIR="zip_staging" # Relative to GITHUB_WORKSPACE
-          TARGET_IN_ZIP_PATH="plugins/zlibrary.koplugin"
+          TARGET_IN_ZIP_PATH="plugins/cwabd.koplugin"
           FULL_TARGET_STAGING_PATH="$STAGING_DIR/$TARGET_IN_ZIP_PATH" # Relative to GITHUB_WORKSPACE
 
           # Clean up any previous staging directory and create the new one
@@ -246,7 +246,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ steps.plugin_vars.outputs.version }}-${{ github.sha }}
-          name: zlibrary.koplugin v${{ steps.plugin_vars.outputs.version }}
+          name: cwabd.koplugin v${{ steps.plugin_vars.outputs.version }}
           draft: false
           prerelease: false
           files: ./${{ steps.plugin_vars.outputs.zip_name }}
@@ -273,3 +273,4 @@ jobs:
             echo "Changes pushed."
           fi
         shell: bash
+
